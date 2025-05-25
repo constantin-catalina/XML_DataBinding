@@ -1,0 +1,16 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="library">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="book" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:attribute name="title" type="xs:string" use="required"/>
+                        <xs:attribute name="author" type="xs:string" use="required"/>
+                        <xs:attribute name="year" type="xs:int" use="required"/>
+                        <xs:attribute name="price" type="xs:float" use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
