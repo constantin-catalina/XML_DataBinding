@@ -7,7 +7,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class SchemaToClassGenerator extends DefaultHandler {
     private String currentClass = null;
     private Map<String, List<Field>> classes = new LinkedHashMap<>();
-
+    private String pendingElementName = null;
     private boolean inComplexType = false;
 
     public static void main(String[] args) {
@@ -30,43 +30,52 @@ public class SchemaToClassGenerator extends DefaultHandler {
     @Override
     public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
         switch (qName) {
-            case "xs:complexType":
-                inComplexType = true;
-                String typeName = atts.getValue("name");
-                if (typeName != null) {
-                    classes.put(typeName, new ArrayList<>());
-                    currentClass = typeName;
+            case "xs:element":
+                String name = atts.getValue("name");
+                String type = atts.getValue("type");
+                String maxOccurs = atts.getValue("maxOccurs");
+
+                if (type != null) {
+                    // Named type
+                    String className = capitalize(name);
+                    classes.putIfAbsent(className, new ArrayList<>());
+                    boolean isList = "unbounded".equals(maxOccurs);
+                    if (currentClass != null) {
+                        classes.get(currentClass).add(new Field(name, type, isList));
+                    }
+                } else {
+                    // Anonymous type — remember element name
+                    pendingElementName = name;
+                    boolean isList = "unbounded".equals(maxOccurs);
+                    if (currentClass != null && pendingElementName != null) {
+                        String fieldType = capitalize(pendingElementName);
+                        classes.get(currentClass).add(new Field(pendingElementName, fieldType, isList));
+                    }
                 }
                 break;
 
-            case "xs:element":
-                if (inComplexType && currentClass != null) {
-                    String fieldName = atts.getValue("name");
-                    String type = atts.getValue("type");
-                    String maxOccurs = atts.getValue("maxOccurs");
-                    if (fieldName != null && type != null) {
-                        boolean isList = "unbounded".equals(maxOccurs);
-                        classes.get(currentClass).add(new Field(fieldName, type, isList));
-                    }
-                } else {
-                    String elemName = atts.getValue("name");
-                    String type = atts.getValue("type");
-                    if (elemName != null) {
-                        currentClass = capitalize(elemName);
-                        classes.putIfAbsent(currentClass, new ArrayList<>());
-                        if (type != null) {
-                            classes.get(currentClass).add(new Field(elemName.toLowerCase(), type, false));
-                        }
-                    }
+            case "xs:complexType":
+                inComplexType = true;
+                String typeName = atts.getValue("name");
+
+                if (typeName != null) {
+                    // Named complexType
+                    currentClass = capitalize(typeName);
+                    classes.putIfAbsent(currentClass, new ArrayList<>());
+                } else if (pendingElementName != null) {
+                    // Anonymous complexType within element
+                    currentClass = capitalize(pendingElementName);
+                    classes.putIfAbsent(currentClass, new ArrayList<>());
+                    pendingElementName = null;
                 }
                 break;
 
             case "xs:attribute":
-                if (inComplexType && currentClass != null) {
-                    String name = atts.getValue("name");
-                    String type = atts.getValue("type");
-                    if (name != null && type != null) {
-                        classes.get(currentClass).add(new Field(name, type, false));
+                if (currentClass != null) {
+                    String attrName = atts.getValue("name");
+                    String attrType = atts.getValue("type");
+                    if (attrName != null && attrType != null) {
+                        classes.get(currentClass).add(new Field(attrName, attrType, false));
                     }
                 }
                 break;
@@ -79,9 +88,6 @@ public class SchemaToClassGenerator extends DefaultHandler {
             inComplexType = false;
             currentClass = null;
         }
-        if (qName.equals("xs:element") && currentClass != null) {
-            currentClass = null;
-        }
     }
 
     private void writeClasses() throws IOException {
@@ -90,7 +96,9 @@ public class SchemaToClassGenerator extends DefaultHandler {
             List<Field> fields = entry.getValue();
             File outputDir = new File("output");
             if (!outputDir.exists()) {
-                outputDir.mkdir();
+                if(!outputDir.mkdir()){
+                    throw new IOException("Failed to create output directory");
+                }
             }
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(outputDir, className + ".java")))) {
                 boolean needsListImport = fields.stream().anyMatch(f -> f.isList);

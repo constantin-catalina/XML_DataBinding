@@ -4,6 +4,7 @@ out/
 !**/src/test/**/out/
 .idea/
 assignment_5.iml
+output
 
 ### Eclipse ###
 .apt_generated
