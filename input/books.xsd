@@ -1,0 +1,25 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name="BookShop">
+        <xsd:complexType >
+            <xsd:sequence>
+                <xsd:element name="book" type="bookdata" minOccurs="0" maxOccurs="unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    <xsd:complexType name="bookdata">
+        <xsd:sequence>
+            <xsd:element name="author" type="persondata" minOccurs="1" maxOccurs="unbounded"/>
+            <xsd:element name="title" type="xsd:string"/>
+            <xsd:element name="price" type="xsd:float"/>
+            <xsd:element name="description" type="xsd:string"/>
+        </xsd:sequence>
+        <xsd:attribute name="id" type="xsd:string"/>
+    </xsd:complexType>
+    <xsd:complexType name="persondata">
+        <xsd:sequence>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="surname" type="xsd:string"/>
+            <xsd:element name="cv" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

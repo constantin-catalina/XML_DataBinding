@@ -5,10 +5,9 @@ import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class SchemaToClassGenerator extends DefaultHandler {
-    private String currentClass = null;
+    private Deque<String> classStack = new ArrayDeque<>();
     private Map<String, List<Field>> classes = new LinkedHashMap<>();
     private String pendingElementName = null;
-    private boolean inComplexType = false;
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -16,77 +15,90 @@ public class SchemaToClassGenerator extends DefaultHandler {
             System.exit(1);
         }
         try {
+            File schemaFile = new File(args[0]);
+            if (!schemaFile.exists()) {
+                System.err.println("Error: Schema file not found: " + args[0]);
+                System.exit(1);
+            }
+
             SAXParserFactory factory = SAXParserFactory.newInstance();
             SAXParser parser = factory.newSAXParser();
 
             SchemaToClassGenerator handler = new SchemaToClassGenerator();
-            parser.parse(new File(args[0]), handler);
+            parser.parse(schemaFile, handler);
             handler.writeClasses();
+
+            System.out.println("---> Schema-to-Class generation completed successfully!");
+
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error processing schema: " + e.getMessage());
+            System.exit(1);
         }
     }
 
     @Override
     public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
         switch (qName) {
+            case "xsd:element":
             case "xs:element":
                 String name = atts.getValue("name");
+                if (name == null) break;
                 String type = atts.getValue("type");
                 String maxOccurs = atts.getValue("maxOccurs");
+                boolean isList = "unbounded".equals(maxOccurs);
 
                 if (type != null) {
                     // Named type
-                    String className = capitalize(name);
-                    classes.putIfAbsent(className, new ArrayList<>());
-                    boolean isList = "unbounded".equals(maxOccurs);
-                    if (currentClass != null) {
-                        classes.get(currentClass).add(new Field(name, type, isList));
+                    String fieldType = extractSimpleType(type);
+                    if (!classStack.isEmpty()) {
+                        classes.get(classStack.peek()).add(new Field(name, fieldType, isList));
                     }
                 } else {
                     // Anonymous type — remember element name
                     pendingElementName = name;
-                    boolean isList = "unbounded".equals(maxOccurs);
-                    if (currentClass != null && pendingElementName != null) {
-                        String fieldType = capitalize(pendingElementName);
-                        classes.get(currentClass).add(new Field(pendingElementName, fieldType, isList));
+                    if (!classStack.isEmpty()) {
+                        String fieldType = capitalize(name);
+                        classes.get(classStack.peek()).add(new Field(name, fieldType, isList));
                     }
                 }
                 break;
 
+            case "xsd:complexType":
             case "xs:complexType":
-                inComplexType = true;
                 String typeName = atts.getValue("name");
 
+                String className;
                 if (typeName != null) {
-                    // Named complexType
-                    currentClass = capitalize(typeName);
-                    classes.putIfAbsent(currentClass, new ArrayList<>());
+                    className = capitalize(typeName);
                 } else if (pendingElementName != null) {
-                    // Anonymous complexType within element
-                    currentClass = capitalize(pendingElementName);
-                    classes.putIfAbsent(currentClass, new ArrayList<>());
+                    className = capitalize(pendingElementName);
                     pendingElementName = null;
+                } else {
+                    className = "Anonymous" + classes.size();
                 }
+
+                classes.putIfAbsent(className, new ArrayList<>());
+                classStack.push(className);
                 break;
 
+            case "xsd:attribute":
             case "xs:attribute":
-                if (currentClass != null) {
+                if (!classStack.isEmpty()) {
                     String attrName = atts.getValue("name");
                     String attrType = atts.getValue("type");
                     if (attrName != null && attrType != null) {
-                        classes.get(currentClass).add(new Field(attrName, attrType, false));
+                        classes.get(classStack.peek()).add(new Field(attrName, extractSimpleType(attrType), false));
                     }
                 }
                 break;
+
         }
     }
 
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
-        if (qName.equals("xs:complexType")) {
-            inComplexType = false;
-            currentClass = null;
+        if (qName.equals("xs:complexType") || qName.equals("xsd:complexType")) {
+            classStack.pop();
         }
     }
 
@@ -123,14 +135,16 @@ public class SchemaToClassGenerator extends DefaultHandler {
 
     private String mapType(String xsdType, boolean list) {
         String baseType;
-        switch (xsdType) {
-            case "xs:string": baseType = "String"; break;
-            case "xs:int": case "xs:integer": baseType = "int"; break;
-            case "xs:float": baseType = "float"; break;
-            case "xs:double": baseType = "double"; break;
-            case "xs:boolean": baseType = "boolean"; break;
+        String lowerType = xsdType.toLowerCase();
+        switch (lowerType) {
+            case "string": baseType = "String"; break;
+            case "int":
+            case "integer": baseType = "int"; break;
+            case "float": baseType = "float"; break;
+            case "double": baseType = "double"; break;
+            case "boolean": baseType = "boolean"; break;
             default:
-                baseType = xsdType.contains(":") ? xsdType.substring(xsdType.indexOf(':') + 1) : xsdType;
+                baseType = xsdType;
         }
         return list ? "List<" + baseType + ">" : baseType;
     }
@@ -144,6 +158,13 @@ public class SchemaToClassGenerator extends DefaultHandler {
             this.type = type;
             this.isList = isList;
         }
+    }
+
+    private String extractSimpleType(String xsdType) {
+        if (!xsdType.contains(":")) {
+            return xsdType;
+        }
+        return xsdType.substring(xsdType.indexOf(':') + 1);
     }
 
     private static String capitalize(String s) {
