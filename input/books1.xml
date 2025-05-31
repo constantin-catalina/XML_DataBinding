@@ -1,0 +1,42 @@
+<BookShop>
+    <book id="B1">
+        <author>
+            <name>John</name>
+            <surname>Doe</surname>
+            <cv>Somewhere</cv>
+        </author>
+        <title>The History of Tralology</title>
+        <price>1.5E2</price>
+        <description>A comprehensive guide to Tralology</description>
+    </book>
+    <book id="B2">
+        <author>
+            <name>Alice</name>
+            <surname>Alisson</surname>
+            <cv>Did great things</cv>
+        </author>
+        <author>
+            <name>Bob</name>
+            <surname>Bobson</surname>
+            <cv>Biggest expert in barbology</cv>
+        </author>
+        <author>
+            <name>Cat</name>
+            <surname>Carson</surname>
+            <cv>Member of Academy</cv>
+        </author>
+        <title>Big enciclopedy of barbology</title>
+        <price>1.5E2</price>
+        <description>The most up to date enciclopedic work on barbology</description>
+    </book>
+    <book id="B3">
+        <author>
+            <name>Rick</name>
+            <surname>Rockson</surname>
+            <cv>From Rover</cv>
+        </author>
+        <title>Write great code in 7 days</title>
+        <price>1.5E2</price>
+        <description>Best course ever</description>
+    </book>
+</BookShop>

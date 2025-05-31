@@ -1,0 +1,27 @@
+<BookShop>
+    <book id="BS1">
+        <author>
+            <name>Ron</name>
+            <surname>Rockson</surname>
+            <cv>Expert in life sciences</cv>
+        </author>
+        <author>
+            <name>Sam</name>
+            <surname>Smith</surname>
+            <cv>Explorer</cv>
+        </author>
+        <title>Impact of penguins on life on Earth</title>
+        <price>1.5E2</price>
+        <description>A revolutionary new theory</description>
+    </book>
+    <book id="BS2">
+        <author>
+            <name>Tom</name>
+            <surname>Timberland</surname>
+            <cv>Professor of Tralalogy</cv>
+        </author>
+        <title>All about Tralalogy</title>
+        <price>1.5E2</price>
+        <description>A comprehensive guide on the subject</description>
+    </book>
+</BookShop>
