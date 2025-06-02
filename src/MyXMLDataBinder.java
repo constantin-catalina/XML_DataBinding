@@ -35,6 +35,24 @@ public class MyXMLDataBinder {
     private static <T> T readElementToObject(Element element, Class<T> clazz) throws Exception {
         T obj = clazz.getDeclaredConstructor().newInstance();
 
+        NamedNodeMap attrs = element.getAttributes();
+        for (int i = 0; i < attrs.getLength(); i++) {
+            Node attr = attrs.item(i);
+            String name = attr.getNodeName();
+            String value = attr.getNodeValue();
+
+            try {
+                Field field = clazz.getField(name);
+                Class<?> fieldType = field.getType();
+
+                if (isPrimitiveOrWrapper(fieldType)) {
+                    Object parsedValue = parsePrimitive(fieldType, value);
+                    field.set(obj, parsedValue);
+                }
+            } catch (NoSuchFieldException e) {
+            }
+        }
+
         NodeList children = element.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node n = children.item(i);

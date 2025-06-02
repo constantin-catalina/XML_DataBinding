@@ -7,7 +7,7 @@ public class TestBooks {
     public static void main(String[] args) throws Exception {
 
         BookShop shop = MyXMLDataBinder.CreateObjectFromXMLfile(new File("input/books1.xml"), BookShop.class);
-        System.out.println("Number of books: " + shop.book.size());
+        System.out.println("Number of books: " + shop.book.size() + "\n");
 
         for (int i = 0; i < shop.book.size(); i++) {
             Bookdata book = shop.book.get(i);
@@ -31,7 +31,7 @@ public class TestBooks {
             Files.createDirectories(outputDir);
         }
 
-        Files.write(outputDir.resolve("books_output.xml"), xmlOutput.getBytes());
-        System.out.println("Marshalled object back to books_output.xml");
+        Files.write(outputDir.resolve("books_output1.xml"), xmlOutput.getBytes());
+        System.out.println("Marshalled object back to books_output1.xml");
     }
 }
